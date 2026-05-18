@@ -133,6 +133,27 @@ export async function resolveUserPermissions(upn: string): Promise<UserPermissio
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+// SQL Server LIKE special characters that must be escaped in user-supplied search values
+// to prevent unintended wildcard pattern matching.
+const LIKE_ESCAPE_REGEX = /[%_[]/g;
+
+/**
+ * Escapes SQL Server LIKE pattern special characters in a user-supplied value.
+ * Prevents input like "%admin%" from matching more records than intended.
+ * The escaped value is still wrapped in wildcards by the caller.
+ */
+function escapeLikeValue(value: string): string {
+  return value.replace(LIKE_ESCAPE_REGEX, (char) => `[${char}]`);
+}
+
+// Fractional split display mapping (matches original VBScript Select Case logic):
+//   13 stored as integer → display as 13.333%
+//   33 stored as integer → display as 33.333%
+const FRACTIONAL_SPLIT_MAP: Record<number, number> = {
+  13: 13.333,
+  33: 33.333,
+};
+
 const ALLOWED_SORT_TYPES = new Set(['rep', 'fund', 'type', 'cust', 'inv', 'comm', 'spon']);
 const ALLOWED_SEARCH_TYPES = new Set(['trl', 'mut', 'ins', 'fnd', 'cus', 'tdt', 'spn']);
 
@@ -227,13 +248,14 @@ export async function queryRecords(
       case 'trl': searchClause = " AND BATCH = 'TRAILS'"; break;
       case 'mut': searchClause = " AND BATCH = 'MUTUALS'"; break;
       case 'ins': searchClause = " AND BATCH = 'INSURANCE'"; break;
-      // Free-text filters: wildcard added here, value is parameterised
+      // Free-text filters: LIKE special characters are escaped before wrapping
+      // in wildcards to prevent unintended pattern matching.
       case 'fnd':
-        request.input('searchVal', sql.NVarChar(200), `%${params.searchVal ?? ''}%`);
+        request.input('searchVal', sql.NVarChar(200), `%${escapeLikeValue(params.searchVal ?? '')}%`);
         searchClause = ' AND FUND_NAME LIKE @searchVal';
         break;
       case 'cus':
-        request.input('searchVal', sql.NVarChar(200), `%${params.searchVal ?? ''}%`);
+        request.input('searchVal', sql.NVarChar(200), `%${escapeLikeValue(params.searchVal ?? '')}%`);
         searchClause = ' AND CUSTOMER LIKE @searchVal';
         break;
       case 'tdt':
@@ -241,7 +263,7 @@ export async function queryRecords(
         searchClause = ' AND TRADE_DATE = @searchVal';
         break;
       case 'spn':
-        request.input('searchVal', sql.NVarChar(200), `%${params.searchVal ?? ''}%`);
+        request.input('searchVal', sql.NVarChar(200), `%${escapeLikeValue(params.searchVal ?? '')}%`);
         searchClause = ' AND SPON_ACCT LIKE @searchVal';
         break;
     }
@@ -381,7 +403,7 @@ export async function queryReps(
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
       INNER JOIN T_SUB_RRs sr ON vr.ID = sr.ID
       WHERE tes.lasalle_st_ID LIKE '0KK%'
-        AND vr.LASL_ACTIVCODE = 'active'
+        AND vr.LASL_ACTIVCODE = 'Active'
         AND sr.Share_Pcnt > 0
         AND sr.Description NOT LIKE 'Direct'
       ORDER BY sr.SHARED_REP_NO
@@ -398,7 +420,7 @@ export async function queryReps(
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
       INNER JOIN T_SUB_RRs sr ON vr.ID = sr.ID
       WHERE tes.lasalle_st_ID IN ('0KAA45', '0KAA53', '0KAA64')
-        AND vr.LASL_ACTIVCODE = 'active'
+        AND vr.LASL_ACTIVCODE = 'Active'
         AND sr.Share_Pcnt > 0
         AND sr.Description NOT LIKE 'Direct'
       ORDER BY sr.SHARED_REP_NO
@@ -416,7 +438,7 @@ export async function queryReps(
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
       INNER JOIN T_SUB_RRs sr ON vr.ID = sr.ID
       WHERE tes.lasalle_st_ID = @repId
-        AND vr.LASL_ACTIVCODE = 'active'
+        AND vr.LASL_ACTIVCODE = 'Active'
         AND sr.Share_Pcnt > 0
         AND sr.Description NOT LIKE 'Direct'
       ORDER BY sr.SHARED_REP_NO
@@ -432,7 +454,6 @@ export async function queryReps(
   return result.recordset.map((r) => ({
     repNum: r.repNum,
     description: r.description,
-    // Display fractional splits faithfully (matches original VBScript Select Case)
-    sharePct: r.sharePct === 13 ? 13.333 : r.sharePct === 33 ? 33.333 : r.sharePct,
+    sharePct: FRACTIONAL_SPLIT_MAP[r.sharePct] ?? r.sharePct,
   }));
 }

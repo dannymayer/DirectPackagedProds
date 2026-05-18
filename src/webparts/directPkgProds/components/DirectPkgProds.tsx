@@ -112,26 +112,35 @@ export default class DirectPkgProds extends React.Component<IDirectPkgProdsProps
     }
   }
 
-  private readonly handleFiltersChange = async (
+  private readonly handleFiltersChange = (
     newFilters: Partial<FilterState>,
-  ): Promise<void> => {
+  ): void => {
     const updated = { ...this.state.filters, ...newFilters };
-
-    // When switching admin view mode, refresh the reps list too
     const viewAsAdminChanged =
       newFilters.viewAsAdmin !== undefined &&
       newFilters.viewAsAdmin !== this.state.filters.viewAsAdmin;
 
-    this.setState({ filters: updated }, async () => {
-      if (viewAsAdminChanged && this.props.apiService) {
-        const reps = await this.props.apiService.getReps(updated.viewAsAdmin);
-        this.setState({ reps, filters: { ...updated, repnum: 'all' } }, () => {
-          void this.fetchRecords();
-        });
-      } else {
-        await this.fetchRecords();
-      }
-    });
+    if (viewAsAdminChanged && this.props.apiService) {
+      const apiService = this.props.apiService;
+      this.setState({ filters: updated }, () => {
+        apiService
+          .getReps(updated.viewAsAdmin)
+          .then((reps) => {
+            this.setState({ reps, filters: { ...this.state.filters, repnum: 'all' } }, () => {
+              void this.fetchRecords();
+            });
+          })
+          .catch((err: unknown) => {
+            this.setState({
+              error: err instanceof Error ? err.message : 'Failed to load reps.',
+            });
+          });
+      });
+    } else {
+      this.setState({ filters: updated }, () => {
+        void this.fetchRecords();
+      });
+    }
   };
 
   private readonly handleExport = (): void => {
