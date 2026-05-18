@@ -1,0 +1,24 @@
+{
+  "name": "direct-pkg-prods-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for Direct Packaged Products SharePoint web part",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "build:watch": "tsc --project tsconfig.json --watch",
+    "lint": "eslint 'src/**/*.ts' --ext .ts",
+    "start": "func start",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@azure/functions": "^3.5.1",
+    "mssql": "^10.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

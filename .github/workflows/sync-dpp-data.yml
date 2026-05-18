@@ -1,0 +1,91 @@
+name: Daily DPP Data Sync
+
+# ---------------------------------------------------------------------------
+# Purpose
+# ---------------------------------------------------------------------------
+# Triggers a data-refresh on the Azure Function App once per day (and on
+# demand).  The "sync" endpoint recomputes any cached data (e.g. a SharePoint
+# List or an intermediate Azure SQL staging table) that the web part reads at
+# higher frequency.
+#
+# If the Function App queries the on-premise SQL Server directly on every web
+# part load, this workflow is only needed for:
+#   • Pre-warming the function after cold starts
+#   • Populating an optional read-replica / SharePoint List cache
+#
+# The workflow uses OIDC federated credentials — no long-lived secrets are
+# stored in GitHub.  Configure the federated credential in Azure AD as
+# described in SETUP.md.
+# ---------------------------------------------------------------------------
+
+on:
+  # Run every day at 06:00 UTC (adjust to suit business hours)
+  schedule:
+    - cron: '0 6 * * *'
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — log actions without writing data'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+permissions:
+  id-token: write   # Required for OIDC login
+  contents: read
+
+jobs:
+  sync:
+    name: Sync DPP data
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ------------------------------------------------------------------
+      # 1. Authenticate to Azure via OIDC (no stored credentials)
+      # ------------------------------------------------------------------
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # ------------------------------------------------------------------
+      # 2. Invoke the Azure Function sync trigger
+      #    The function URL is stored as a secret to avoid exposing it.
+      #    The function uses its own managed identity to connect to SQL.
+      # ------------------------------------------------------------------
+      - name: Trigger DPP sync function
+        env:
+          FUNCTION_URL: ${{ secrets.DPP_SYNC_FUNCTION_URL }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          echo "Triggering DPP sync (dry_run=${DRY_RUN})..."
+          HTTP_STATUS=$(curl --silent --output /tmp/sync_response.json \
+            --write-out "%{http_code}" \
+            --max-time 300 \
+            -X POST "${FUNCTION_URL}" \
+            -H "Content-Type: application/json" \
+            -d "{\"dryRun\": ${DRY_RUN}}")
+
+          echo "HTTP status: ${HTTP_STATUS}"
+          cat /tmp/sync_response.json
+
+          if [ "${HTTP_STATUS}" -lt 200 ] || [ "${HTTP_STATUS}" -ge 300 ]; then
+            echo "::error::Sync function returned HTTP ${HTTP_STATUS}"
+            exit 1
+          fi
+          echo "Sync completed successfully."
+
+      # ------------------------------------------------------------------
+      # 3. Log out
+      # ------------------------------------------------------------------
+      - name: Azure logout
+        if: always()
+        run: az logout

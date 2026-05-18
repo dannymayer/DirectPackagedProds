@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/package-solution/2017-02/package-solution.schema.json",
+  "solution": {
+    "name": "direct-packaged-products-client-side-solution",
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "LaSalle St. Securities",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "websiteUrl": "",
+      "mpnId": "Undefined-1.18.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Displays Direct Packaged Products trails for the current rep."
+      },
+      "longDescription": {
+        "default": "Displays Direct Packaged Products trails for the current rep."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "Direct Packaged Products Feature",
+        "description": "The feature that activates elements of the Direct Packaged Products solution.",
+        "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "version": "1.0.0.0"
+      }
+    ],
+    "webApiPermissionRequests": [
+      {
+        "resource": "https://your-function-app.azurewebsites.net",
+        "scope": "user_impersonation"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/direct-packaged-products.sppkg"
+  }
+}

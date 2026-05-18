@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "FUNCTIONS_NODE_BLOCK_ON_ENTRY_POINT_ERROR": "true",
+    "DB_SERVER": "your-sql-server.database.windows.net",
+    "DB_NAME": "WebReps",
+    "DB_USER": "your-db-user",
+    "DB_PASSWORD": "your-db-password",
+    "DB_ENCRYPT": "true",
+    "DB_TRUST_CERT": "false"
+  }
+}
