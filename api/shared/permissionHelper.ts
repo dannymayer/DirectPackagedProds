@@ -100,7 +100,7 @@ export async function resolveUserPermissions(upn: string): Promise<UserPermissio
         vr.LASL_NAME
       FROM T_E_Services tes
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
-      WHERE vr.LASL_ACTIVCODE = 'Active'
+      WHERE UPPER(vr.LASL_ACTIVCODE) = 'ACTIVE'
         AND (
           LOWER(tes.UPN) = @upn
           OR LOWER(tes.lasalle_st_ID) = LOWER(@usernamePrefix)
@@ -403,7 +403,7 @@ export async function queryReps(
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
       INNER JOIN T_SUB_RRs sr ON vr.ID = sr.ID
       WHERE tes.lasalle_st_ID LIKE '0KK%'
-        AND vr.LASL_ACTIVCODE = 'Active'
+        AND UPPER(vr.LASL_ACTIVCODE) = 'ACTIVE'
         AND sr.Share_Pcnt > 0
         AND sr.Description NOT LIKE 'Direct'
       ORDER BY sr.SHARED_REP_NO
@@ -420,7 +420,7 @@ export async function queryReps(
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
       INNER JOIN T_SUB_RRs sr ON vr.ID = sr.ID
       WHERE tes.lasalle_st_ID IN ('0KAA45', '0KAA53', '0KAA64')
-        AND vr.LASL_ACTIVCODE = 'Active'
+        AND UPPER(vr.LASL_ACTIVCODE) = 'ACTIVE'
         AND sr.Share_Pcnt > 0
         AND sr.Description NOT LIKE 'Direct'
       ORDER BY sr.SHARED_REP_NO
@@ -438,7 +438,7 @@ export async function queryReps(
       INNER JOIN vwREPALL vr ON tes.ID = vr.ID
       INNER JOIN T_SUB_RRs sr ON vr.ID = sr.ID
       WHERE tes.lasalle_st_ID = @repId
-        AND vr.LASL_ACTIVCODE = 'Active'
+        AND UPPER(vr.LASL_ACTIVCODE) = 'ACTIVE'
         AND sr.Share_Pcnt > 0
         AND sr.Description NOT LIKE 'Direct'
       ORDER BY sr.SHARED_REP_NO
